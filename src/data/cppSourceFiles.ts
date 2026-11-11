@@ -387,6 +387,49 @@ public:
         clear();
     }
 
+    // Rule of 5: Deep Copy Constructor (Eliminates shallow copy double-free hazard)
+    TaskDLL(const TaskDLL& other) : head(nullptr), tail(nullptr), count(0) {
+        TaskNode* curr = other.head;
+        while (curr != nullptr) {
+            append(curr->data);
+            curr = curr->next;
+        }
+    }
+
+    // Rule of 5: Deep Copy Assignment Operator
+    TaskDLL& operator=(const TaskDLL& other) {
+        if (this != &other) {
+            clear();
+            TaskNode* curr = other.head;
+            while (curr != nullptr) {
+                append(curr->data);
+                curr = curr->next;
+            }
+        }
+        return *this;
+    }
+
+    // Rule of 5: Move Constructor
+    TaskDLL(TaskDLL&& other) noexcept : head(other.head), tail(other.tail), count(other.count) {
+        other.head = nullptr;
+        other.tail = nullptr;
+        other.count = 0;
+    }
+
+    // Rule of 5: Move Assignment Operator
+    TaskDLL& operator=(TaskDLL&& other) noexcept {
+        if (this != &other) {
+            clear();
+            head = other.head;
+            tail = other.tail;
+            count = other.count;
+            other.head = nullptr;
+            other.tail = nullptr;
+            other.count = 0;
+        }
+        return *this;
+    }
+
     void clear() {
         TaskNode* current = head;
         while (current != nullptr) {

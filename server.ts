@@ -18,6 +18,14 @@ import {
   updateRotationPointer,
   resetUserWorkspace,
 } from './src/db/repository.ts';
+import {
+  brainstormIdeasWithGemini,
+  generateStageScriptWithGemini,
+} from './src/lib/gemini.ts';
+import {
+  syncYouTubeChannelMetrics,
+  publishToYouTubeStudio,
+} from './src/lib/youtube.ts';
 
 dotenv.config();
 
@@ -178,6 +186,52 @@ async function startServer() {
     } catch (error: any) {
       console.error('API Error POST /api/workspace/reset:', error);
       res.status(500).json({ error: error.message || 'Failed to reset workspace' });
+    }
+  });
+
+  // 7. Phase 6: Gemini AI Content Ideation & 7-Stage Scripting Endpoints
+  app.post('/api/ai/brainstorm', async (req, res) => {
+    try {
+      const { channelName, category, persona = 'chill' } = req.body;
+      const ideas = await brainstormIdeasWithGemini(channelName, category, persona);
+      res.json({ ideas });
+    } catch (error: any) {
+      console.error('API Error POST /api/ai/brainstorm:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate ideas' });
+    }
+  });
+
+  app.post('/api/ai/script', async (req, res) => {
+    try {
+      const { title, category, persona = 'chill' } = req.body;
+      const script = await generateStageScriptWithGemini(title, category, persona);
+      res.json({ script });
+    } catch (error: any) {
+      console.error('API Error POST /api/ai/script:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate stage script' });
+    }
+  });
+
+  // 8. Phase 7: YouTube Data API v3 Sync & Stage 7 Publishing
+  app.post('/api/youtube/sync', async (req, res) => {
+    try {
+      const { channelCode, channelName, currentSubscribers } = req.body;
+      const syncResult = await syncYouTubeChannelMetrics(channelCode, channelName, currentSubscribers);
+      res.json(syncResult);
+    } catch (error: any) {
+      console.error('API Error POST /api/youtube/sync:', error);
+      res.status(500).json({ error: error.message || 'Failed to sync YouTube metrics' });
+    }
+  });
+
+  app.post('/api/youtube/publish', async (req, res) => {
+    try {
+      const payload = req.body;
+      const result = await publishToYouTubeStudio(payload);
+      res.json(result);
+    } catch (error: any) {
+      console.error('API Error POST /api/youtube/publish:', error);
+      res.status(500).json({ error: error.message || 'Failed to publish to YouTube' });
     }
   });
 

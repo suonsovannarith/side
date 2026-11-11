@@ -25,6 +25,9 @@ import {
   Trash2,
   RefreshCw,
   Edit3,
+  Sparkles,
+  Youtube,
+  Bot,
 } from 'lucide-react';
 import {
   signInWithPopup,
@@ -59,6 +62,8 @@ import { PipelineDLLView } from './components/PipelineDLLView.tsx';
 import { RotationCLLView } from './components/RotationCLLView.tsx';
 import { CliSimulatorView } from './components/CliSimulatorView.tsx';
 import { CppArchitectureView } from './components/CppArchitectureView.tsx';
+import { AgentAssistantDrawer } from './components/AgentAssistantDrawer.tsx';
+import { YouTubeSyncModal } from './components/YouTubeSyncModal.tsx';
 
 type NavSection =
   | 'home'
@@ -90,6 +95,10 @@ export default function App() {
   // Selected Content Item for 7-Stage Pipeline & Quick Inspector Modal
   const [selectedPipelineContentId, setSelectedPipelineContentId] = useState<string>('CNT-114');
   const [inspectedContentItem, setInspectedContentItem] = useState<ContentItem | null>(null);
+
+  // Phase 6: AI Assistant Drawer & Phase 7: YouTube Live Sync State
+  const [showAiAssistant, setShowAiAssistant] = useState<boolean>(false);
+  const [showYouTubeSync, setShowYouTubeSync] = useState<boolean>(false);
 
   // New Channel Modal State
   const [showNewChannelModal, setShowNewChannelModal] = useState<boolean>(false);
@@ -469,6 +478,62 @@ export default function App() {
     }
   };
 
+  const handleAiAddIdeaToSLL = async (item: Partial<ContentItem>) => {
+    const nextCode = `CNT-${101 + contentItems.length + Math.floor(Math.random() * 40)}`;
+    const newItem: ContentItem = {
+      id: nextCode,
+      title: item.title || 'Untitled Video Idea',
+      channelId: item.channelId || currentRotationChannelId,
+      type: item.type || 'Long-form',
+      priority: item.priority || 'High',
+      status: 'Idea',
+      plannedPublishDate: '2026-03-24',
+      assetFilePath: item.assetFilePath || `/data/assets/${item.channelId || 'CH-01'}/${nextCode}.md`,
+      notes: item.notes || '',
+      tags: item.tags || [],
+      createdAt: '2026-03-09',
+    };
+
+    const baseNum = 600 + tasks.length;
+    const generatedTasks: ProductionTask[] = PRODUCTION_STAGES.map((stage) => ({
+      id: `TSK-${baseNum + stage.number}`,
+      contentId: newItem.id,
+      stageNumber: stage.number,
+      stageName: stage.name,
+      status: stage.number === 1 ? 'In Progress' : 'Pending',
+      dueDate: newItem.plannedPublishDate,
+      toolOrAssignee: stage.defaultTool,
+      notes: stage.description,
+    }));
+
+    setContentItems((prev) => [...prev, newItem]);
+    setTasks((prev) => [...prev, ...generatedTasks]);
+    setSelectedPipelineContentId(newItem.id);
+    showToast(`AI Assistant created ${newItem.id} in ContentSLL with 7 stages`);
+
+    if (idToken) {
+      try {
+        await apiFetch('/api/content', {
+          method: 'POST',
+          body: JSON.stringify({ item: newItem, generate7StagePipeline: true }),
+        });
+      } catch (err) {
+        console.error('Error persisting AI content idea:', err);
+      }
+    }
+  };
+
+  const handleYouTubeMetricsUpdated = (channelId: string, subscribers: string, lastUpload: string) => {
+    setChannels((prev) =>
+      prev.map((c) =>
+        c.id === channelId
+          ? { ...c, totalSubscribers: subscribers, lastUploadedDate: lastUpload }
+          : c
+      )
+    );
+    showToast(`Updated [${channelId}] metrics via YouTube Data API v3`);
+  };
+
   const handleUpdateContentStatus = async (
     contentId: string,
     status: ProductionStatus
@@ -733,6 +798,27 @@ export default function App() {
               );
             })}
           </nav>
+
+          {/* AI Swarm & YouTube API Live Integrations */}
+          <div className="pt-2 border-t border-slate-700/60 space-y-1.5">
+            <button
+              onClick={() => setShowAiAssistant(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#1E293B] hover:bg-[#283548] text-[#D4A359] border border-[#D4A359]/30 transition-all cursor-pointer shadow-xs"
+              title="AI Swarm Assistant (Gemini Flash)"
+            >
+              <Sparkles className="w-4 h-4 text-[#D4A359] shrink-0" />
+              {!sidebarCollapsed && <span>AI Swarm Assistant</span>}
+            </button>
+
+            <button
+              onClick={() => setShowYouTubeSync(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#1E293B] hover:bg-[#283548] text-red-400 border border-red-500/30 transition-all cursor-pointer shadow-xs"
+              title="YouTube Data API Sync"
+            >
+              <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+              {!sidebarCollapsed && <span>YouTube API Sync</span>}
+            </button>
+          </div>
 
           {/* CHANNELS Frame (Matches Reference Screenshot) */}
           {!sidebarCollapsed && (
@@ -1566,6 +1652,22 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* DRAWER: AI Swarm Assistant (Phase 6) */}
+      <AgentAssistantDrawer
+        isOpen={showAiAssistant}
+        onClose={() => setShowAiAssistant(false)}
+        channels={channels}
+        onAddIdeaToSLL={handleAiAddIdeaToSLL}
+      />
+
+      {/* MODAL: YouTube Data API v3 Live Sync (Phase 7) */}
+      <YouTubeSyncModal
+        isOpen={showYouTubeSync}
+        onClose={() => setShowYouTubeSync(false)}
+        channels={channels}
+        onChannelMetricsUpdated={handleYouTubeMetricsUpdated}
+      />
     </div>
   );
 }
