@@ -1,0 +1,6 @@
+{
+  "name": "CreatorDesk - Multi-Channel CMS",
+  "description": "Multi-Channel Content Management System for YouTube creators. Features custom SLL, DLL, and CLL data structures, C++ CLI simulation, interactive video calendar, and production pipeline.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
